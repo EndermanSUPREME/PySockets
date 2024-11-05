@@ -27,6 +27,10 @@ def GetNetworkIP():
 
 def ConnectClient(connection, address):
     global RUNNING,ConnectedClients
+
+    # Clear the current input line
+    sys.stdout.write("\033[2K\r")  # Clear line and move cursor to start
+    sys.stdout.flush()
     print(f"[*] Incoming Connection from {address}")
 
     sys.stdout.write("cmd [/exit - quit] >> ")
@@ -44,6 +48,17 @@ def ConnectClient(connection, address):
                 sys.stdout.write("\033[2K\r")  # Clear line and move cursor to start
                 sys.stdout.flush()
 
+                if recvBuffer.decode() == "\n":
+                    print(f"[*] {address} Disconnected")
+                    # Remove Disconnected User
+                    for conn in ConnectedClients:
+                        if conn.GetConnection() == connection:
+                            ConnectedClients.remove(conn)
+                    # Reprint the input prompt at the bottom
+                    sys.stdout.write("cmd [/exit - quit] >> ")
+                    sys.stdout.flush()
+                    break
+
                 recvMessage = f"{address} >> {recvBuffer.decode()}"
                 print(recvMessage)
 
@@ -54,10 +69,7 @@ def ConnectClient(connection, address):
                 # Send message to everyone
                 for conn in ConnectedClients:
                     conn.GetConnection().sendall(recvMessage.encode())
-            elif len(recvBuffer) == 0:
-                print(f"[*] {address} Disconnected")
-                ConnectedClients.remove(ConnectClient(connection,address))
-                break
+
     except Exception as e:
         return None
 

@@ -65,6 +65,7 @@ def StartClient():
 
             if msgData == "/exit":
                 CONNECTIONENDED = True
+                clientsocket.send(b'\n')
                 clientsocket.close()
                 print("[*] Killing Connection. . .")
                 break
