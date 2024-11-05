@@ -12,13 +12,21 @@ def Help():
 def ListenToServer(server):
     global CONNECTIONENDED
     try:
-        while CONNECTIONENDED == False:
-            recvBuffer = server.recv(64) # size of recv bytes we allow
+        while not CONNECTIONENDED:
+            recvBuffer = server.recv(64)  # Buffer size
             if len(recvBuffer) > 0:
+                # Clear the current input line
+                sys.stdout.write("\033[2K\r")  # Clear line and move cursor to start
+                sys.stdout.flush()
+
+                # Print the received message
                 print(f"{recvBuffer.decode()}")
+                
+                # Reprint the input prompt at the bottom
+                sys.stdout.write("Msg >> ")
+                sys.stdout.flush()
     except Exception as e:
         CONNECTIONENDED = True
-        print("Enter /exit - quit")
 
 def StartClient():
     global CONNECTIONENDED
@@ -49,17 +57,30 @@ def StartClient():
             if serverListener.is_alive() == False:
                 serverListener.start()
 
-            msgData = str(input("Msg >> "))
+            msgData = str(input()).lstrip()
+
+            sys.stdout.write("\033[2K") # Erase the entire line
+            sys.stdout.write("\r") # Move cursor back to the start of the line
+            sys.stdout.flush()
+
             if msgData == "/exit":
                 CONNECTIONENDED = True
+                clientsocket.close()
                 print("[*] Killing Connection. . .")
                 break
-            clientsocket.send(msgData.encode())
+
+            if len(msgData) > 0 and msgData.isspace() == False:
+                clientsocket.send(msgData.encode())
+            else:
+                sys.stdout.write("\033[F\033[K")
+                sys.stdout.write("Msg >> ")
+                sys.stdout.flush()
 
         if serverListener.is_alive():
             serverListener.join()
     except Exception as e:
         CONNECTIONENDED = True
+        clientsocket.close()
         print(f"Error: {e}")
 
 def main():

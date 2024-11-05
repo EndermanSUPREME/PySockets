@@ -1,4 +1,4 @@
-import threading, socket
+import threading, socket, sys
 
 RUNNING = True
 
@@ -29,15 +29,35 @@ def ConnectClient(connection, address):
     global RUNNING,ConnectedClients
     print(f"[*] Incoming Connection from {address}")
 
+    sys.stdout.write("cmd [/exit - quit] >> ")
+    sys.stdout.flush()
+
     try:
         while RUNNING:
             recvBuffer = connection.recv(64) # size of recv bytes we allow
-            if len(recvBuffer) > 0 and RUNNING:
+
+            if RUNNING == False:
+                break
+
+            if len(recvBuffer) > 0:
+                # Clear the current input line
+                sys.stdout.write("\033[2K\r")  # Clear line and move cursor to start
+                sys.stdout.flush()
+
                 recvMessage = f"{address} >> {recvBuffer.decode()}"
                 print(recvMessage)
+
+                # Reprint the input prompt at the bottom
+                sys.stdout.write("cmd [/exit - quit] >> ")
+                sys.stdout.flush()
+
+                # Send message to everyone
                 for conn in ConnectedClients:
-                    if conn.GetConnection() != connection:
-                        conn.GetConnection().sendall(recvMessage.encode())
+                    conn.GetConnection().sendall(recvMessage.encode())
+            elif len(recvBuffer) == 0:
+                print(f"[*] {address} Disconnected")
+                ConnectedClients.remove(ConnectClient(connection,address))
+                break
     except Exception as e:
         return None
 
@@ -62,6 +82,9 @@ def RunServer():
         serversocket.bind((str(IPAddr), PORT))
         serversocket.listen(5) # become a server socket, maximum 5 connections
         print(f"[+] Server Active | {IPAddr}:{PORT}")
+
+        sys.stdout.write("cmd [/exit - quit] >> ")
+        sys.stdout.flush()
 
         while RUNNING:
             # When a connection is captured we sent it to
@@ -93,11 +116,19 @@ def main():
     serverThread.start() # start thread
 
     while True:
-        msg = str(input("cmd [/exit - quit] >> "))
+        msg = str(input()).lstrip()
         if msg == "/exit":
             RUNNING = False
             KillConnect()
             break
+
+        if len(msg) == 0 or msg.isspace():
+            sys.stdout.write("\033[F\033[K")
+            sys.stdout.write("cmd [/exit - quit] >> ")
+            sys.stdout.flush()
+        else:
+            sys.stdout.write("cmd [/exit - quit] >> ")
+            sys.stdout.flush()
 
     serverThread.join() # wait for thread to finish
     print("End Of Program. . .")
