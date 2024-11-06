@@ -12,8 +12,12 @@ def Help():
 def ListenToServer(server):
     global CONNECTIONENDED
     try:
-        while not CONNECTIONENDED:
+        while CONNECTIONENDED == False:
             recvBuffer = server.recv(64)  # Buffer size
+
+            if CONNECTIONENDED == True:
+                break
+
             if len(recvBuffer) > 0:
                 # Clear the current input line
                 sys.stdout.write("\033[2K\r")  # Clear line and move cursor to start
@@ -59,6 +63,7 @@ def StartClient():
 
             msgData = str(input()).lstrip()
 
+            sys.stdout.write("\033[1A")
             sys.stdout.write("\033[2K") # Erase the entire line
             sys.stdout.write("\r") # Move cursor back to the start of the line
             sys.stdout.flush()
